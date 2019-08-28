@@ -61,7 +61,12 @@ function postMessage(target, type, message, targetOrigin, transfer) {
     }, targetOrigin, transfer);
     var removeListener = addListenerOnce(getReplyType(type), function (data) {
       clearTimeout(waitReplyTimer);
-      resolve(data);
+
+      if (typeof data === 'object' && typeof data.then === 'function') {
+        data.then(resolve, reject);
+      } else {
+        resolve(data);
+      }
     }, id);
     waitReplyTimer = setTimeout(function () {
       removeListener();
@@ -101,21 +106,12 @@ function addListener(msgTypes, listener, id) {
         var returnData = listener(_message, event); // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
 
         if (typeof returnData !== 'undefined' && event.source) {
-          var replyMessage = function replyMessage(message) {
-            sender(event.source, {
-              __ident__: PMER_IDENT,
-              id: id,
-              type: getReplyType(_type),
-              message: message
-            }, event.origin);
-          }; // 可能是promise
-
-
-          if (typeof returnData === 'object' && typeof returnData.then === 'function') {
-            returnData.then(replyMessage);
-          } else {
-            replyMessage(returnData);
-          }
+          sender(event.source, {
+            __ident__: PMER_IDENT,
+            id: id,
+            type: getReplyType(_type),
+            message: returnData
+          }, event.origin);
         }
       }
     }

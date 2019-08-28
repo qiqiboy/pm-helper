@@ -87,7 +87,11 @@ export function postMessage(
             function(data) {
                 clearTimeout(waitReplyTimer);
 
-                resolve(data);
+                if (typeof data === 'object' && typeof data.then === 'function') {
+                    data.then(resolve, reject);
+                } else {
+                    resolve(data);
+                }
             },
             id
         );
@@ -133,25 +137,16 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?
 
                 // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
                 if (typeof returnData !== 'undefined' && event.source) {
-                    const replyMessage = message => {
-                        sender(
-                            event.source!,
-                            {
-                                __ident__: PMER_IDENT,
-                                id,
-                                type: getReplyType(type),
-                                message
-                            },
-                            event.origin
-                        );
-                    };
-
-                    // 可能是promise
-                    if (typeof returnData === 'object' && typeof returnData.then === 'function') {
-                        returnData.then(replyMessage);
-                    } else {
-                        replyMessage(returnData);
-                    }
+                    sender(
+                        event.source!,
+                        {
+                            __ident__: PMER_IDENT,
+                            id,
+                            type: getReplyType(type),
+                            message: returnData
+                        },
+                        event.origin
+                    );
                 }
             }
         }

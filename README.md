@@ -33,7 +33,7 @@ $ npm install pmer --save
 
 ### `postMessage`
 
-向目标发送消息
+向目标发送消息，返回一个promise对象。当目标窗口回复了消息后，可以通过该promise对象获得回复的消息信息
 
 ```typescript
 /**
@@ -78,7 +78,7 @@ postMessage(window.parent, 'DELETE_USER', 123).then(() => console.log('delete su
 export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): ListenerCancel;
 
 // 监听 DELETE_USER 消息
-addListener('DELETE_USER', () => {
+addListener('DELETE_USER', message => {
     console.log('message:', message);
 });
 
@@ -87,11 +87,11 @@ addListener('DELETE_USER', message => {
     return 'delete succeed!';
 });
 
-// 你也可以返回一个promise对象，其resolved状态的值会作为回复消息(这里使用async/await语法)
-addListener('DELETE_USER', async message => {
-    await fetch('/delete/user/' + message);
-
-    return 'delete succeed!';
+// 你也可以返回一个promise对象(这里使用async/await语法)：
+// postMessage(window, 'DELETE_USER', 123)
+//      .then(() => console.log('删除成功'), () => console.log('删除失败'))
+addListener('DELETE_USER', async userId => {
+    await fetch('/delete/user/' + userId);
 });
 
 // addListener调用后会返回一个清理函数，可以通过该函数随时移除当前的消息监听
