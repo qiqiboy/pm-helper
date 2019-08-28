@@ -55,11 +55,11 @@ export declare function postMessage(
 ): Promise<any>;
 
 // 给父级窗口发送 DELETE_USER 消息
-postMessage(window.parent, 'DELETE_MSG', 123);
+postMessage(window.parent, 'DELETE_USER', 123);
 
 // 如果父级窗口有回复该消息，则可以通过promise监听结果
 //（注：如果父级窗口没有实现消息回复，那么60s后将会触发消息超时失败）
-postMessage(window.parent, 'DELETE_MSG', 123).then(() => console.log('delete succeed!'));
+postMessage(window.parent, 'DELETE_USER', 123).then(() => console.log('delete succeed!'));
 ```
 
 ### `addListener`
@@ -78,7 +78,7 @@ postMessage(window.parent, 'DELETE_MSG', 123).then(() => console.log('delete suc
 export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): ListenerCancel;
 
 // 监听 DELETE_USER 消息
-addListener('DELETE_USER', message => {
+addListener('DELETE_USER', () => {
     console.log('message:', message);
 });
 
@@ -89,10 +89,14 @@ addListener('DELETE_USER', message => {
 
 // 你也可以返回一个promise对象，其resolved状态的值会作为回复消息(这里使用async/await语法)
 addListener('DELETE_USER', async message => {
-    await fetch('/delete/user/123');
+    await fetch('/delete/user/' + message);
 
     return 'delete succeed!';
 });
+
+// addListener调用后会返回一个清理函数，可以通过该函数随时移除当前的消息监听
+const removeListener = addListener('DELETE_USER', () => {});
+removeListener();
 ```
 
 ### `addListenerOnce`

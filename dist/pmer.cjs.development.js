@@ -2,18 +2,30 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-exports.mid = 0; // 消息id
+exports.PMER_MESSAGE_ID = 0; // 消息id
 
-var MESSAGE_TIMEOUT = new Error('PMER_POST_MESSAGE_TIMEOUT');
-var MESSAGE_IDENT = 'PMER_MESSAGE_IDENT';
+var PMER_UNHANDLE_REJECTION = new Error('PMER_POST_MESSAGE_TIMEOUT');
+var PMER_IDENT = 'PMER_MESSAGE_IDENT';
 
 function getReplyType(type) {
   return "PMER_REPLY::".concat(type);
+}
+
+function isWindow(mayWindow) {
+  return mayWindow.window === window;
+}
+
+function sender(target, data, origin, transfer) {
+  if (isWindow(target)) {
+    target.postMessage(data, origin || '*', transfer);
+  } else {
+    target.postMessage(data, transfer);
+  }
 } // 阻止消息超时时抛出promise rejection异常
 
 
 window.addEventListener('unhandledrejection', function (event) {
-  if (event.reason === MESSAGE_TIMEOUT) {
+  if (event.reason === PMER_UNHANDLE_REJECTION) {
     event.preventDefault();
   }
 });
@@ -32,26 +44,32 @@ window.addEventListener('unhandledrejection', function (event) {
  *      .then(data => console.log('receive data:', data));
  */
 
-function postMessage(target, type, message) {
-  var targetOrigin = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '*';
-  var transfer = arguments.length > 4 ? arguments[4] : undefined;
+function postMessage(target, type, message, targetOrigin, transfer) {
   return new Promise(function (resolve, reject) {
     // 我们发出消息，同时附带一个id标记
-    var id = exports.mid++;
-    var timer;
-    target.postMessage({
-      __ident__: MESSAGE_IDENT,
+    var id = exports.PMER_MESSAGE_ID++;
+    var waitReplyTimer;
+
+    if (Array.isArray(targetOrigin)) {
+      // @ts-ignore
+      var _ref = [targetOrigin];
+      transfer = _ref[0];
+      targetOrigin = _ref[1];
+    }
+
+    sender(target, {
+      __ident__: PMER_IDENT,
       id: id,
       type: type,
       message: message
     }, targetOrigin, transfer);
-    var cancel = addListenerOnce(getReplyType(type), function (data) {
-      clearTimeout(timer);
+    var removeListener = addListenerOnce(getReplyType(type), function (data) {
+      clearTimeout(waitReplyTimer);
       resolve(data);
     }, id);
-    timer = setTimeout(function () {
-      cancel();
-      reject(MESSAGE_TIMEOUT);
+    waitReplyTimer = setTimeout(function () {
+      removeListener();
+      reject(PMER_UNHANDLE_REJECTION);
     }, 60 * 1000);
   });
 }
@@ -72,7 +90,7 @@ function addListener(msgTypes, listener, id) {
     if (typeof event.data === 'object') {
       var _event$data = event.data,
           replyId = _event$data.id,
-          type = _event$data.type,
+          _type = _event$data.type,
           _message = _event$data.message,
           __ident__ = _event$data.__ident__;
 
@@ -81,17 +99,17 @@ function addListener(msgTypes, listener, id) {
       } // 确保消息的type、id值是我们说希望监听的
 
 
-      if (__ident__ === MESSAGE_IDENT && msgTypes.length && msgTypes.some(function (item) {
-        return item === '*' || item === type;
+      if (__ident__ === PMER_IDENT && msgTypes.some(function (item) {
+        return item === '*' || item === _type;
       }) && (!id || replyId === id)) {
         var returnData = listener(_message, event); // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
 
         if (typeof returnData !== 'undefined' && event.source) {
           var replyMessage = function replyMessage(message) {
-            event.source.postMessage({
-              __ident__: MESSAGE_IDENT,
+            sender(event.source, {
+              __ident__: PMER_IDENT,
               id: id,
-              type: getReplyType(type),
+              type: getReplyType(_type),
               message: message
             }, event.origin);
           }; // 可能是promise
@@ -134,6 +152,8 @@ function addListenerOnce(msgTypes, listener, id) {
   return cancel;
 }
 
+exports.PMER_IDENT = PMER_IDENT;
+exports.PMER_UNHANDLE_REJECTION = PMER_UNHANDLE_REJECTION;
 exports.addListener = addListener;
 exports.addListenerOnce = addListenerOnce;
 exports.postMessage = postMessage;

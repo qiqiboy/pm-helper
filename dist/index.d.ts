@@ -1,4 +1,6 @@
-export declare let mid: number;
+export declare let PMER_MESSAGE_ID: number;
+export declare const PMER_UNHANDLE_REJECTION: Error;
+export declare const PMER_IDENT: string;
 /**
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...
@@ -13,7 +15,8 @@ export declare let mid: number;
  * postMessage(winodw.opener, 'MSG_TYPE', 'anything')
  *      .then(data => console.log('receive data:', data));
  */
-export declare function postMessage(target: Window, type: string, message?: any, targetOrigin?: string, transfer?: Transferable[]): Promise<any>;
+export declare function postMessage(target: MessageEventSource, type: string, message?: any, transfer?: Transferable[]): Promise<any>;
+export declare function postMessage(target: MessageEventSource, type: string, message?: any, targetOrigin?: string, transfer?: Transferable[]): Promise<any>;
 /**
  * 添加消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
