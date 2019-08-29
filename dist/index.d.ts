@@ -21,7 +21,7 @@ export declare function postMessage(target: MessageEventSource, type: string, me
  * 添加消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  *
@@ -31,17 +31,18 @@ export declare function postMessage(target: MessageEventSource, type: string, me
 declare type RemoveListener = () => void;
 declare type ListenerTypes = string | '*' | string[];
 declare type LisenterCall = (message: any, event: MessageEvent) => any;
-export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener;
+declare type FilterCall = (event: MessageEvent) => boolean;
+export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener;
 /**
  * 添加单次消息监听（收到一次消息后即移除）
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  *
  * @example
  * addListener('MSG_TYPE', (message, event) => {});
  */
-export declare function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener;
+export declare function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener;
 export {};

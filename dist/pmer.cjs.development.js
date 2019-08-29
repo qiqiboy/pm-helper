@@ -12,7 +12,7 @@ function getReplyType(type) {
 }
 
 function isWindow(mayWindow) {
-  return mayWindow.window === window;
+  return mayWindow.window === mayWindow;
 }
 
 function sender(target, data, origin, transfer) {
@@ -71,7 +71,9 @@ function postMessage(target, type, message, targetOrigin, transfer) {
       } else {
         resolve(data);
       }
-    }, id);
+    }, function (event) {
+      return event.data.id === id;
+    });
     waitReplyTimer = setTimeout(function () {
       removeListener();
       reject(PMER_UNHANDLE_REJECTION);
@@ -82,7 +84,7 @@ function postMessage(target, type, message, targetOrigin, transfer) {
  * 添加消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  *
@@ -90,7 +92,7 @@ function postMessage(target, type, message, targetOrigin, transfer) {
  * addListener('MSG_TYPE', (message, event) => {});
  */
 
-function addListener(msgTypes, listener, id) {
+function addListener(msgTypes, listener, filter) {
   function receiveMessage(event) {
     if (typeof event.data === 'object') {
       var _event$data = event.data,
@@ -106,13 +108,13 @@ function addListener(msgTypes, listener, id) {
 
       if (__ident__ === PMER_IDENT && msgTypes.some(function (item) {
         return item === '*' || item === _type;
-      }) && (!id || replyId === id)) {
+      }) && (!filter || filter(event))) {
         var returnData = listener(_message, event); // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
 
         if (typeof returnData !== 'undefined' && event.source) {
           sender(event.source, {
             __ident__: PMER_IDENT,
-            id: id,
+            id: replyId,
             type: getReplyType(_type),
             message: returnData
           }, event.origin);
@@ -132,7 +134,7 @@ function addListener(msgTypes, listener, id) {
  * 添加单次消息监听（收到一次消息后即移除）
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  *
@@ -140,12 +142,12 @@ function addListener(msgTypes, listener, id) {
  * addListener('MSG_TYPE', (message, event) => {});
  */
 
-function addListenerOnce(msgTypes, listener, id) {
-  var cancel = addListener(msgTypes, function () {
-    cancel();
+function addListenerOnce(msgTypes, listener, filter) {
+  var removeListener = addListener(msgTypes, function () {
+    removeListener();
     return listener.apply(void 0, arguments);
-  }, id);
-  return cancel;
+  }, filter);
+  return removeListener;
 }
 
 exports.PMER_IDENT = PMER_IDENT;

@@ -8,7 +8,7 @@ function getReplyType(type) {
 }
 
 function isWindow(mayWindow): mayWindow is Window {
-    return mayWindow.window === window;
+    return mayWindow.window === mayWindow;
 }
 
 function sender(target: MessageEventSource, data, origin, transfer?) {
@@ -93,7 +93,7 @@ export function postMessage(
                     resolve(data);
                 }
             },
-            id
+            event => event.data.id === id
         );
 
         waitReplyTimer = setTimeout(() => {
@@ -108,7 +108,7 @@ export function postMessage(
  * 添加消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  *
@@ -118,7 +118,9 @@ export function postMessage(
 type RemoveListener = () => void;
 type ListenerTypes = string | '*' | string[];
 type LisenterCall = (message: any, event: MessageEvent) => any;
-export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener {
+type FilterCall = (event: MessageEvent) => boolean;
+
+export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener {
     function receiveMessage(event: MessageEvent) {
         if (typeof event.data === 'object') {
             const { id: replyId, type, message, __ident__ } = event.data;
@@ -131,7 +133,7 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?
             if (
                 __ident__ === PMER_IDENT &&
                 msgTypes.some(item => item === '*' || item === type) &&
-                (!id || replyId === id)
+                (!filter || filter(event))
             ) {
                 const returnData = listener(message, event);
 
@@ -141,7 +143,7 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?
                         event.source!,
                         {
                             __ident__: PMER_IDENT,
-                            id,
+                            id: replyId,
                             type: getReplyType(type),
                             message: returnData
                         },
@@ -165,23 +167,23 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?
  * 添加单次消息监听（收到一次消息后即移除）
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  *
  * @example
  * addListener('MSG_TYPE', (message, event) => {});
  */
-export function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, id?: number) {
-    const cancel = addListener(
+export function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall) {
+    const removeListener = addListener(
         msgTypes,
         function(...args) {
-            cancel();
+            removeListener();
 
             return listener(...args);
         },
-        id
+        filter
     );
 
-    return cancel;
+    return removeListener;
 }

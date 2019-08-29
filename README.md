@@ -33,7 +33,7 @@ $ npm install pmer --save
 
 ### `postMessage`
 
-向目标发送消息，返回一个promise对象。当目标窗口回复了消息后，可以通过该promise对象获得回复的消息信息
+向目标发送消息，返回一个 promise 对象。当目标窗口回复了消息后，可以通过该 promise 对象获得回复的消息信息
 
 ```typescript
 /**
@@ -71,11 +71,11 @@ postMessage(window.parent, 'DELETE_USER', 123).then(() => console.log('delete su
  * 添加消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 可选，消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  */
-export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): ListenerCancel;
+export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener;
 
 // 监听 DELETE_USER 消息
 addListener('DELETE_USER', message => {
@@ -97,6 +97,21 @@ addListener('DELETE_USER', async userId => {
 // addListener调用后会返回一个清理函数，可以通过该函数随时移除当前的消息监听
 const removeListener = addListener('DELETE_USER', () => {});
 removeListener();
+
+// 可以通过第三个filter参数过滤一些不符合的消息，例如只接收来自指定域的消息
+addListener(
+    'DELETE_USER',
+    message => {
+        console.log(message);
+    },
+    event => event.origin === 'https://valid.domain.com'
+);
+// 上面等同于，但是区别是当使用addListanerOnce时，通过第三个参数可以避免收到错误的消息后监听器被移除
+addListener('DELETE_USER', (message, event) => {
+    if (event.origin === 'https://valid.domain.com') {
+        console.og(message);
+    }
+});
 ```
 
 ### `addListenerOnce`
@@ -105,12 +120,12 @@ removeListener();
 
 ```typescript
 /**
- * 添加消息监听
+ * 添加单次消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
  * @param {function} listener 监听方法
- * @param {number} id 消息id，如果传递了id，那么必须id一致才会认为是正确的消息回复
+ * @param {Function} filter 可选，消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
  */
-export declare function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): ListenerCancel;
+export declare function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener;
 ```
