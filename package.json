@@ -1,7 +1,7 @@
 {
   "name": "pmer",
   "version": "0.0.3",
-  "description": "Provider some helpful functions for postMessage",
+  "description": "Provide some powerful & helpful functions for Two-way communication with postMessage",
   "author": "qiqiboy",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -92,11 +92,18 @@
   "peerDependencies": {
     "@babel/runtime": "^7.0.0"
   },
+  "homepage": "https://github.com/qiqiboy/pmer#readme",
   "repository": {
     "type": "git",
-    "url": "git@github.com:qiqiboy/pmer.git"
+    "url": "git+https://github.com/qiqiboy/pmer.git"
   },
-  "dependencies": {},
+  "keywords": [
+    "postmessage",
+    "post-message",
+    "two-way-communication",
+    "cross-domain",
+    "iframe"
+  ],
   "devDependencies": {
     "@babel/cli": "7.5.5",
     "@babel/core": "7.5.5",
