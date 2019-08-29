@@ -1,7 +1,21 @@
 export let PMER_MESSAGE_ID = 0; // 消息id
 
-export const PMER_UNHANDLE_REJECTION = new Error('PMER_POST_MESSAGE_TIMEOUT');
-export const PMER_IDENT: string = 'PMER_MESSAGE_IDENT';
+export const PMER_IDENT = 'PMER_MESSAGE_IDENT';
+
+// Detect if postMessage can send objects(<ie10)
+// Also see Modernizr: https://github.com/Modernizr/Modernizr/blob/master/feature-detects/postmessage.js#L23-L25
+let onlyStringMessage = false;
+
+try {
+    window.postMessage(
+        {
+            toString: function() {
+                onlyStringMessage = true;
+            }
+        },
+        '*'
+    );
+} catch (e) {}
 
 function getReplyType(type) {
     return `PMER_REPLY::${type}`;
@@ -12,6 +26,10 @@ function isWindow(mayWindow): mayWindow is Window {
 }
 
 function sender(target: MessageEventSource, data, origin, transfer?) {
+    if (onlyStringMessage) {
+        data = JSON.stringify(data);
+    }
+
     if (isWindow(target)) {
         target.postMessage(data, origin || '*', transfer);
     } else {
@@ -19,12 +37,17 @@ function sender(target: MessageEventSource, data, origin, transfer?) {
     }
 }
 
-// 阻止消息超时时抛出promise rejection异常
-window.addEventListener('unhandledrejection', event => {
-    if (event.reason === PMER_UNHANDLE_REJECTION) {
-        event.preventDefault();
+function getEventData(event: MessageEvent): any {
+    let eventData = event.data;
+
+    if (onlyStringMessage) {
+        try {
+            eventData = JSON.parse(event.data);
+        } catch (e) {}
     }
-});
+
+    return eventData;
+}
 
 /**
  * 发送消息
@@ -82,25 +105,19 @@ export function postMessage(
             transfer
         );
 
-        const removeListener = addListenerOnce(
+        addListenerOnce(
             getReplyType(type),
-            function(data) {
+            function(data, event) {
                 clearTimeout(waitReplyTimer);
 
-                if (typeof data === 'object' && typeof data.then === 'function') {
-                    data.then(resolve, reject);
+                if (getEventData(event).error) {
+                    reject(new Error(data));
                 } else {
                     resolve(data);
                 }
             },
-            event => event.data.id === id
+            event => getEventData(event).id === id
         );
-
-        waitReplyTimer = setTimeout(() => {
-            removeListener();
-
-            reject(PMER_UNHANDLE_REJECTION);
-        }, 60 * 1000);
     });
 }
 
@@ -122,8 +139,10 @@ type FilterCall = (event: MessageEvent) => boolean;
 
 export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener {
     function receiveMessage(event: MessageEvent) {
-        if (typeof event.data === 'object') {
-            const { id: replyId, type, message, __ident__ } = event.data;
+        let eventData = getEventData(event);
+
+        if (typeof eventData === 'object') {
+            const { id: replyId, type, message, __ident__ } = eventData;
 
             if (!Array.isArray(msgTypes)) {
                 msgTypes = [msgTypes];
@@ -136,19 +155,29 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, fil
                 (!filter || filter(event))
             ) {
                 const returnData = listener(message, event);
-
-                // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
-                if (typeof returnData !== 'undefined' && event.source) {
+                const replyMessage = (message, error = false) => {
                     sender(
                         event.source!,
                         {
                             __ident__: PMER_IDENT,
                             id: replyId,
                             type: getReplyType(type),
-                            message: returnData
+                            message,
+                            error
                         },
                         event.origin
                     );
+                };
+
+                // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
+                if (typeof returnData !== 'undefined' && event.source) {
+                    if (typeof returnData === 'object' && typeof returnData.then === 'function') {
+                        returnData.then(replyMessage, reason =>
+                            replyMessage(reason instanceof Error ? reason.message : reason, true)
+                        );
+                    } else {
+                        replyMessage(returnData);
+                    }
                 }
             }
         }

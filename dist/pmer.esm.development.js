@@ -1,7 +1,17 @@
 var PMER_MESSAGE_ID = 0; // 消息id
 
-var PMER_UNHANDLE_REJECTION = new Error('PMER_POST_MESSAGE_TIMEOUT');
-var PMER_IDENT = 'PMER_MESSAGE_IDENT';
+var PMER_IDENT = 'PMER_MESSAGE_IDENT'; // Detect if postMessage can send objects(<ie10)
+// Also see Modernizr: https://github.com/Modernizr/Modernizr/blob/master/feature-detects/postmessage.js#L23-L25
+
+var onlyStringMessage = false;
+
+try {
+  window.postMessage({
+    toString: function toString() {
+      onlyStringMessage = true;
+    }
+  }, '*');
+} catch (e) {}
 
 function getReplyType(type) {
   return "PMER_REPLY::".concat(type);
@@ -12,19 +22,28 @@ function isWindow(mayWindow) {
 }
 
 function sender(target, data, origin, transfer) {
+  if (onlyStringMessage) {
+    data = JSON.stringify(data);
+  }
+
   if (isWindow(target)) {
     target.postMessage(data, origin || '*', transfer);
   } else {
     target.postMessage(data, transfer);
   }
-} // 阻止消息超时时抛出promise rejection异常
+}
 
+function getEventData(event) {
+  var eventData = event.data;
 
-window.addEventListener('unhandledrejection', function (event) {
-  if (event.reason === PMER_UNHANDLE_REJECTION) {
-    event.preventDefault();
+  if (onlyStringMessage) {
+    try {
+      eventData = JSON.parse(event.data);
+    } catch (e) {}
   }
-});
+
+  return eventData;
+}
 /**
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...
@@ -39,6 +58,7 @@ window.addEventListener('unhandledrejection', function (event) {
  * postMessage(winodw.opener, 'MSG_TYPE', 'anything')
  *      .then(data => console.log('receive data:', data));
  */
+
 
 function postMessage(target, type, message, targetOrigin, transfer) {
   return new Promise(function (resolve, reject) {
@@ -59,21 +79,17 @@ function postMessage(target, type, message, targetOrigin, transfer) {
       type: type,
       message: message
     }, targetOrigin, transfer);
-    var removeListener = addListenerOnce(getReplyType(type), function (data) {
+    addListenerOnce(getReplyType(type), function (data, event) {
       clearTimeout(waitReplyTimer);
 
-      if (typeof data === 'object' && typeof data.then === 'function') {
-        data.then(resolve, reject);
+      if (getEventData(event).error) {
+        reject(new Error(data));
       } else {
         resolve(data);
       }
     }, function (event) {
-      return event.data.id === id;
+      return getEventData(event).id === id;
     });
-    waitReplyTimer = setTimeout(function () {
-      removeListener();
-      reject(PMER_UNHANDLE_REJECTION);
-    }, 60 * 1000);
   });
 }
 /**
@@ -90,12 +106,13 @@ function postMessage(target, type, message, targetOrigin, transfer) {
 
 function addListener(msgTypes, listener, filter) {
   function receiveMessage(event) {
-    if (typeof event.data === 'object') {
-      var _event$data = event.data,
-          replyId = _event$data.id,
-          _type = _event$data.type,
-          _message = _event$data.message,
-          __ident__ = _event$data.__ident__;
+    var eventData = getEventData(event);
+
+    if (typeof eventData === 'object') {
+      var replyId = eventData.id,
+          _type = eventData.type,
+          _message = eventData.message,
+          __ident__ = eventData.__ident__;
 
       if (!Array.isArray(msgTypes)) {
         msgTypes = [msgTypes];
@@ -105,15 +122,28 @@ function addListener(msgTypes, listener, filter) {
       if (__ident__ === PMER_IDENT && msgTypes.some(function (item) {
         return item === '*' || item === _type;
       }) && (!filter || filter(event))) {
-        var returnData = listener(_message, event); // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
+        var returnData = listener(_message, event);
 
-        if (typeof returnData !== 'undefined' && event.source) {
+        var replyMessage = function replyMessage(message) {
+          var error = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
           sender(event.source, {
             __ident__: PMER_IDENT,
             id: replyId,
             type: getReplyType(_type),
-            message: returnData
+            message: message,
+            error: error
           }, event.origin);
+        }; // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
+
+
+        if (typeof returnData !== 'undefined' && event.source) {
+          if (typeof returnData === 'object' && typeof returnData.then === 'function') {
+            returnData.then(replyMessage, function (reason) {
+              return replyMessage(reason instanceof Error ? reason.message : reason, true);
+            });
+          } else {
+            replyMessage(returnData);
+          }
         }
       }
     }
@@ -146,4 +176,4 @@ function addListenerOnce(msgTypes, listener, filter) {
   return removeListener;
 }
 
-export { PMER_IDENT, PMER_MESSAGE_ID, PMER_UNHANDLE_REJECTION, addListener, addListenerOnce, postMessage };
+export { PMER_IDENT, PMER_MESSAGE_ID, addListener, addListenerOnce, postMessage };

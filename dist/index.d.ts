@@ -1,6 +1,5 @@
 export declare let PMER_MESSAGE_ID: number;
-export declare const PMER_UNHANDLE_REJECTION: Error;
-export declare const PMER_IDENT: string;
+export declare const PMER_IDENT = "PMER_MESSAGE_IDENT";
 /**
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...

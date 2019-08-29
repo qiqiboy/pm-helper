@@ -44,7 +44,7 @@ $ npm install pmer --save
  * @param {string} 可选，targetOrigin
  * @param {Transferable[]} 可选，transfer
  *
- * @return {Promise<any>} 返回promise，如果有收到回复消息，将会触发promose回调，否则60s后超时拒绝
+ * @return {Promise<any>} 返回promise，如果有收到回复消息，将会触发promose回调
  */
 export declare function postMessage(
     target: Window,
@@ -58,7 +58,6 @@ export declare function postMessage(
 postMessage(window.parent, 'DELETE_USER', 123);
 
 // 如果父级窗口有回复该消息，则可以通过promise监听结果
-//（注：如果父级窗口没有实现消息回复，那么60s后将会触发消息超时失败）
 postMessage(window.parent, 'DELETE_USER', 123).then(() => console.log('delete succeed!'));
 ```
 
