@@ -170,7 +170,7 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, fil
                 };
 
                 // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
-                if (typeof returnData !== 'undefined' && event.source) {
+                if (event.source) {
                     if (typeof returnData === 'object' && typeof returnData.then === 'function') {
                         returnData.then(replyMessage, reason =>
                             replyMessage(reason instanceof Error ? reason.message : reason, true)

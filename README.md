@@ -33,7 +33,7 @@ $ npm install pmer --save
 
 ### `postMessage`
 
-向目标发送消息，返回一个 promise 对象。当目标窗口回复了消息后，可以通过该 promise 对象获得回复的消息信息
+向目标窗口发送消息，返回一个 promise 对象。你可以通过该 promise 对象来判断是否成功发送了消息，并且如果目标窗口如果回复了该消息，你还可以通过 promise 回调收到传回来的数据。
 
 ```typescript
 /**
