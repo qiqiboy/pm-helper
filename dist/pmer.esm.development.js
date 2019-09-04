@@ -53,7 +53,7 @@ function processEvent(event) {
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...
  * @param {string} type 消息类型
- * @param {any} message 消息体
+ * @param {any} payload 消息体
  * @param {string} 可选，targetOrigin
  * @param {Transferable[]} 可选，transfer
  *
@@ -65,7 +65,7 @@ function processEvent(event) {
  */
 
 
-function postMessage(target, type, message, targetOrigin, transfer) {
+function postMessage(target, type, payload, targetOrigin, transfer) {
   return new Promise(function (resolve, reject) {
     // 我们发出消息，同时附带一个id标记
     var id = PMER_MESSAGE_ID++;
@@ -82,7 +82,7 @@ function postMessage(target, type, message, targetOrigin, transfer) {
       __ident__: PMER_IDENT,
       id: id,
       type: type,
-      message: message
+      payload: payload
     }, targetOrigin, transfer);
     addListenerOnce(getReplyType(type), function (data, event) {
       clearTimeout(waitReplyTimer);
@@ -106,7 +106,7 @@ function postMessage(target, type, message, targetOrigin, transfer) {
  * @return {function} 返回移除监听的方法
  *
  * @example
- * addListener('MSG_TYPE', (message, event) => {});
+ * addListener('MSG_TYPE', (payload, event) => {});
  */
 
 function addListener(msgTypes, listener, filter) {
@@ -117,7 +117,7 @@ function addListener(msgTypes, listener, filter) {
     if (typeof eventData === 'object') {
       var replyId = eventData.id,
           _type = eventData.type,
-          _message = eventData.message,
+          _payload = eventData.payload,
           __ident__ = eventData.__ident__;
 
       if (!Array.isArray(msgTypes)) {
@@ -128,15 +128,15 @@ function addListener(msgTypes, listener, filter) {
       if (__ident__ === PMER_IDENT && msgTypes.some(function (item) {
         return item === '*' || item === _type;
       }) && (!filter || filter(event))) {
-        var returnData = listener(_message, event);
+        var returnData = listener(_payload, event);
 
-        var replyMessage = function replyMessage(message) {
+        var replyMessage = function replyMessage(payload) {
           var error = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
           sender(event.source, {
             __ident__: PMER_IDENT,
             id: replyId,
             type: getReplyType(_type),
-            message: message,
+            payload: payload,
             error: error
           }, event.origin);
         }; // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
@@ -172,7 +172,7 @@ function addListener(msgTypes, listener, filter) {
  * @return {function} 返回移除监听的方法
  *
  * @example
- * addListener('MSG_TYPE', (message, event) => {});
+ * addListener('MSG_TYPE', (payload, event) => {});
  */
 
 function addListenerOnce(msgTypes, listener, filter) {

@@ -8,7 +8,7 @@ interface PMERMessageEvent<T = any> extends MessageEvent {
         id: number;
         type: string;
         __ident__: string;
-        message: T;
+        payload: T;
         error?: boolean;
     };
 }
@@ -72,7 +72,7 @@ function processEvent(event: MessageEvent): PMERMessageEvent {
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...
  * @param {string} type 消息类型
- * @param {any} message 消息体
+ * @param {any} payload 消息体
  * @param {string} 可选，targetOrigin
  * @param {Transferable[]} 可选，transfer
  *
@@ -85,20 +85,20 @@ function processEvent(event: MessageEvent): PMERMessageEvent {
 export function postMessage(
     target: MessageEventSource,
     type: string,
-    message?: any,
+    payload?: any,
     transfer?: Transferable[]
 ): Promise<any>;
 export function postMessage(
     target: MessageEventSource,
     type: string,
-    message?: any,
+    payload?: any,
     targetOrigin?: string,
     transfer?: Transferable[]
 ): Promise<any>;
 export function postMessage(
     target: MessageEventSource,
     type: string,
-    message?: any,
+    payload?: any,
     targetOrigin?: string | Transferable[],
     transfer?: Transferable[]
 ): Promise<any> {
@@ -118,7 +118,7 @@ export function postMessage(
                 __ident__: PMER_IDENT,
                 id,
                 type,
-                message
+                payload
             },
             targetOrigin,
             transfer
@@ -149,11 +149,11 @@ export function postMessage(
  * @return {function} 返回移除监听的方法
  *
  * @example
- * addListener('MSG_TYPE', (message, event) => {});
+ * addListener('MSG_TYPE', (payload, event) => {});
  */
 type RemoveListener = () => void;
 type ListenerTypes = string | '*' | string[];
-type LisenterCall<T> = (message: T, event: PMERMessageEvent<T>) => any;
+type LisenterCall<T> = (payload: T, event: PMERMessageEvent<T>) => any;
 type FilterCall<T> = (event: PMERMessageEvent<T>) => boolean;
 
 export function addListener<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>): RemoveListener {
@@ -162,7 +162,7 @@ export function addListener<T = any>(msgTypes: ListenerTypes, listener: Lisenter
         const eventData = event.parsedData;
 
         if (typeof eventData === 'object') {
-            const { id: replyId, type, message, __ident__ } = eventData;
+            const { id: replyId, type, payload, __ident__ } = eventData;
 
             if (!Array.isArray(msgTypes)) {
                 msgTypes = [msgTypes];
@@ -174,15 +174,15 @@ export function addListener<T = any>(msgTypes: ListenerTypes, listener: Lisenter
                 msgTypes.some(item => item === '*' || item === type) &&
                 (!filter || filter(event))
             ) {
-                const returnData = listener(message, event);
-                const replyMessage = (message, error = false) => {
+                const returnData = listener(payload, event);
+                const replyMessage = (payload, error = false) => {
                     sender(
                         event.source!,
                         {
                             __ident__: PMER_IDENT,
                             id: replyId,
                             type: getReplyType(type),
-                            message,
+                            payload,
                             error
                         },
                         event.origin
@@ -222,7 +222,7 @@ export function addListener<T = any>(msgTypes: ListenerTypes, listener: Lisenter
  * @return {function} 返回移除监听的方法
  *
  * @example
- * addListener('MSG_TYPE', (message, event) => {});
+ * addListener('MSG_TYPE', (payload, event) => {});
  */
 export function addListenerOnce<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>) {
     const removeListener = addListener(

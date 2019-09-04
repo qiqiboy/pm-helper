@@ -5,7 +5,7 @@ interface PMERMessageEvent<T = any> extends MessageEvent {
         id: number;
         type: string;
         __ident__: string;
-        message: T;
+        payload: T;
         error?: boolean;
     };
 }
@@ -14,7 +14,7 @@ export { PMERMessageEvent as MessageEvent };
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...
  * @param {string} type 消息类型
- * @param {any} message 消息体
+ * @param {any} payload 消息体
  * @param {string} 可选，targetOrigin
  * @param {Transferable[]} 可选，transfer
  *
@@ -24,8 +24,8 @@ export { PMERMessageEvent as MessageEvent };
  * postMessage(winodw.opener, 'MSG_TYPE', 'anything')
  *      .then(data => console.log('receive data:', data));
  */
-export declare function postMessage(target: MessageEventSource, type: string, message?: any, transfer?: Transferable[]): Promise<any>;
-export declare function postMessage(target: MessageEventSource, type: string, message?: any, targetOrigin?: string, transfer?: Transferable[]): Promise<any>;
+export declare function postMessage(target: MessageEventSource, type: string, payload?: any, transfer?: Transferable[]): Promise<any>;
+export declare function postMessage(target: MessageEventSource, type: string, payload?: any, targetOrigin?: string, transfer?: Transferable[]): Promise<any>;
 /**
  * 添加消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
@@ -35,11 +35,11 @@ export declare function postMessage(target: MessageEventSource, type: string, me
  * @return {function} 返回移除监听的方法
  *
  * @example
- * addListener('MSG_TYPE', (message, event) => {});
+ * addListener('MSG_TYPE', (payload, event) => {});
  */
 declare type RemoveListener = () => void;
 declare type ListenerTypes = string | '*' | string[];
-declare type LisenterCall<T> = (message: T, event: PMERMessageEvent<T>) => any;
+declare type LisenterCall<T> = (payload: T, event: PMERMessageEvent<T>) => any;
 declare type FilterCall<T> = (event: PMERMessageEvent<T>) => boolean;
 export declare function addListener<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>): RemoveListener;
 /**
@@ -51,6 +51,6 @@ export declare function addListener<T = any>(msgTypes: ListenerTypes, listener: 
  * @return {function} 返回移除监听的方法
  *
  * @example
- * addListener('MSG_TYPE', (message, event) => {});
+ * addListener('MSG_TYPE', (payload, event) => {});
  */
 export declare function addListenerOnce<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>): RemoveListener;

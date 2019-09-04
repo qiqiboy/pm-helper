@@ -40,7 +40,7 @@ $ npm install pmer --save
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...
  * @param {string} type 消息类型
- * @param {any} message 消息体
+ * @param {any} payload 消息体
  * @param {string} 可选，targetOrigin
  * @param {Transferable[]} 可选，transfer
  *
@@ -49,7 +49,7 @@ $ npm install pmer --save
 export declare function postMessage(
     target: Window,
     type: string,
-    message: any,
+    payload?: any,
     targetOrigin?: string,
     transfer?: Transferable[]
 ): Promise<any>;
@@ -69,7 +69,7 @@ postMessage(window.parent, 'DELETE_USER', 123).then(() => console.log('delete su
 /**
  * 添加消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
- * @param {function} listener 监听方法
+ * @param {Function} listener 监听方法
  * @param {Function} filter 可选，消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
@@ -77,12 +77,12 @@ postMessage(window.parent, 'DELETE_USER', 123).then(() => console.log('delete su
 export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener;
 
 // 监听 DELETE_USER 消息
-addListener('DELETE_USER', message => {
-    console.log('message:', message);
+addListener('DELETE_USER', payload => {
+    console.log('message:', payload);
 });
 
 // 通过return一个值，可以回复该消息
-addListener('DELETE_USER', message => {
+addListener('DELETE_USER', payload => {
     return 'delete succeed!';
 });
 
@@ -100,15 +100,15 @@ removeListener();
 // 可以通过第三个filter参数过滤一些不符合的消息，例如只接收来自指定域的消息
 addListener(
     'DELETE_USER',
-    message => {
-        console.log(message);
+    payload => {
+        console.log(payload);
     },
     event => event.origin === 'https://valid.domain.com'
 );
 // 上面等同于，但是区别是当使用addListanerOnce时，通过第三个参数可以避免收到错误的消息后监听器被移除
-addListener('DELETE_USER', (message, event) => {
+addListener('DELETE_USER', (payload, event) => {
     if (event.origin === 'https://valid.domain.com') {
-        console.og(message);
+        console.og(payload);
     }
 });
 ```
@@ -121,7 +121,7 @@ addListener('DELETE_USER', (message, event) => {
 /**
  * 添加单次消息监听
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
- * @param {function} listener 监听方法
+ * @param {Function} listener 监听方法
  * @param {Function} filter 可选，消息过滤，可以通过该方法过滤不符合要求的消息
  *
  * @return {function} 返回移除监听的方法
