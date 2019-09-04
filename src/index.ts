@@ -153,10 +153,10 @@ export function postMessage(
  */
 type RemoveListener = () => void;
 type ListenerTypes = string | '*' | string[];
-type LisenterCall = (message: any, event: PMERMessageEvent) => any;
-type FilterCall = (event: PMERMessageEvent) => boolean;
+type LisenterCall<T> = (message: T, event: PMERMessageEvent<T>) => any;
+type FilterCall<T> = (event: PMERMessageEvent<T>) => boolean;
 
-export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener {
+export function addListener<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>): RemoveListener {
     function receiveMessage(originEvent: MessageEvent) {
         const event = processEvent(originEvent);
         const eventData = event.parsedData;
@@ -224,7 +224,7 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, fil
  * @example
  * addListener('MSG_TYPE', (message, event) => {});
  */
-export function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall) {
+export function addListenerOnce<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>) {
     const removeListener = addListener(
         msgTypes,
         function(...args) {

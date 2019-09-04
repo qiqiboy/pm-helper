@@ -39,9 +39,9 @@ export declare function postMessage(target: MessageEventSource, type: string, me
  */
 declare type RemoveListener = () => void;
 declare type ListenerTypes = string | '*' | string[];
-declare type LisenterCall = (message: any, event: PMERMessageEvent) => any;
-declare type FilterCall = (event: PMERMessageEvent) => boolean;
-export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener;
+declare type LisenterCall<T> = (message: T, event: PMERMessageEvent<T>) => any;
+declare type FilterCall<T> = (event: PMERMessageEvent<T>) => boolean;
+export declare function addListener<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>): RemoveListener;
 /**
  * 添加单次消息监听（收到一次消息后即移除）
  * @param {string|Array} msgTypes 要监听的消息类型，*表示任何消息
@@ -53,4 +53,4 @@ export declare function addListener(msgTypes: ListenerTypes, listener: LisenterC
  * @example
  * addListener('MSG_TYPE', (message, event) => {});
  */
-export declare function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener;
+export declare function addListenerOnce<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>): RemoveListener;
