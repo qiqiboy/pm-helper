@@ -2,6 +2,19 @@ export let PMER_MESSAGE_ID = 0; // 消息id
 
 export const PMER_IDENT = 'PMER_MESSAGE_IDENT';
 
+interface PMERMessageEvent<T = any> extends MessageEvent {
+    // <IE10 browsers only support string data. You can visite 'parsedData' to get the transformed objects
+    parsedData: {
+        id: number;
+        type: string;
+        __ident__: string;
+        message: T;
+        error?: boolean;
+    };
+}
+
+export { PMERMessageEvent as MessageEvent };
+
 // Detect if postMessage can send objects(<ie10)
 // Also see Modernizr: https://github.com/Modernizr/Modernizr/blob/master/feature-detects/postmessage.js#L23-L25
 let onlyStringMessage = false;
@@ -21,6 +34,10 @@ function getReplyType(type) {
     return `PMER_REPLY::${type}`;
 }
 
+function isReplyType(type) {
+    return /^PMER_REPLY::/.test(type);
+}
+
 function isWindow(mayWindow): mayWindow is Window {
     return mayWindow.window === mayWindow;
 }
@@ -37,7 +54,7 @@ function sender(target: MessageEventSource, data, origin, transfer?) {
     }
 }
 
-function getEventData(event: MessageEvent): any {
+function processEvent(event: MessageEvent): PMERMessageEvent {
     let eventData = event.data;
 
     if (onlyStringMessage) {
@@ -46,7 +63,9 @@ function getEventData(event: MessageEvent): any {
         } catch (e) {}
     }
 
-    return eventData;
+    (event as PMERMessageEvent).parsedData = eventData;
+
+    return event as PMERMessageEvent;
 }
 
 /**
@@ -110,13 +129,13 @@ export function postMessage(
             function(data, event) {
                 clearTimeout(waitReplyTimer);
 
-                if (getEventData(event).error) {
+                if (event.parsedData.error) {
                     reject(new Error(data));
                 } else {
                     resolve(data);
                 }
             },
-            event => getEventData(event).id === id
+            event => event.parsedData.id === id
         );
     });
 }
@@ -134,12 +153,13 @@ export function postMessage(
  */
 type RemoveListener = () => void;
 type ListenerTypes = string | '*' | string[];
-type LisenterCall = (message: any, event: MessageEvent) => any;
-type FilterCall = (event: MessageEvent) => boolean;
+type LisenterCall = (message: any, event: PMERMessageEvent) => any;
+type FilterCall = (event: PMERMessageEvent) => boolean;
 
 export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener {
-    function receiveMessage(event: MessageEvent) {
-        let eventData = getEventData(event);
+    function receiveMessage(originEvent: MessageEvent) {
+        const event = processEvent(originEvent);
+        const eventData = event.parsedData;
 
         if (typeof eventData === 'object') {
             const { id: replyId, type, message, __ident__ } = eventData;
@@ -170,7 +190,8 @@ export function addListener(msgTypes: ListenerTypes, listener: LisenterCall, fil
                 };
 
                 // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
-                if (event.source) {
+                // 如果是回复类型，那么就不再继续对其进行回复，避免死锁
+                if (event.source && !isReplyType(type)) {
                     if (typeof returnData === 'object' && typeof returnData.then === 'function') {
                         returnData.then(replyMessage, reason =>
                             replyMessage(reason instanceof Error ? reason.message : reason, true)

@@ -1,8 +1,8 @@
 var PMER_MESSAGE_ID = 0; // 消息id
 
-var PMER_IDENT = 'PMER_MESSAGE_IDENT'; // Detect if postMessage can send objects(<ie10)
+var PMER_IDENT = 'PMER_MESSAGE_IDENT';
+// Detect if postMessage can send objects(<ie10)
 // Also see Modernizr: https://github.com/Modernizr/Modernizr/blob/master/feature-detects/postmessage.js#L23-L25
-
 var onlyStringMessage = false;
 
 try {
@@ -15,6 +15,10 @@ try {
 
 function getReplyType(type) {
   return "PMER_REPLY::".concat(type);
+}
+
+function isReplyType(type) {
+  return /^PMER_REPLY::/.test(type);
 }
 
 function isWindow(mayWindow) {
@@ -33,7 +37,7 @@ function sender(target, data, origin, transfer) {
   }
 }
 
-function getEventData(event) {
+function processEvent(event) {
   var eventData = event.data;
 
   if (onlyStringMessage) {
@@ -42,7 +46,8 @@ function getEventData(event) {
     } catch (e) {}
   }
 
-  return eventData;
+  event.parsedData = eventData;
+  return event;
 }
 /**
  * 发送消息
@@ -82,13 +87,13 @@ function postMessage(target, type, message, targetOrigin, transfer) {
     addListenerOnce(getReplyType(type), function (data, event) {
       clearTimeout(waitReplyTimer);
 
-      if (getEventData(event).error) {
+      if (event.parsedData.error) {
         reject(new Error(data));
       } else {
         resolve(data);
       }
     }, function (event) {
-      return getEventData(event).id === id;
+      return event.parsedData.id === id;
     });
   });
 }
@@ -105,8 +110,9 @@ function postMessage(target, type, message, targetOrigin, transfer) {
  */
 
 function addListener(msgTypes, listener, filter) {
-  function receiveMessage(event) {
-    var eventData = getEventData(event);
+  function receiveMessage(originEvent) {
+    var event = processEvent(originEvent);
+    var eventData = event.parsedData;
 
     if (typeof eventData === 'object') {
       var replyId = eventData.id,
@@ -134,9 +140,10 @@ function addListener(msgTypes, listener, filter) {
             error: error
           }, event.origin);
         }; // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
+        // 如果是回复类型，那么就不再继续对其进行回复，避免死锁
 
 
-        if (event.source) {
+        if (event.source && !isReplyType(_type)) {
           if (typeof returnData === 'object' && typeof returnData.then === 'function') {
             returnData.then(replyMessage, function (reason) {
               return replyMessage(reason instanceof Error ? reason.message : reason, true);

@@ -1,5 +1,15 @@
 export declare let PMER_MESSAGE_ID: number;
 export declare const PMER_IDENT = "PMER_MESSAGE_IDENT";
+interface PMERMessageEvent<T = any> extends MessageEvent {
+    parsedData: {
+        id: number;
+        type: string;
+        __ident__: string;
+        message: T;
+        error?: boolean;
+    };
+}
+export { PMERMessageEvent as MessageEvent };
 /**
  * 发送消息
  * @param {Window} target 目标窗口, window.opener/window.parent/HTMLIFrameElement.contentWindow...
@@ -29,8 +39,8 @@ export declare function postMessage(target: MessageEventSource, type: string, me
  */
 declare type RemoveListener = () => void;
 declare type ListenerTypes = string | '*' | string[];
-declare type LisenterCall = (message: any, event: MessageEvent) => any;
-declare type FilterCall = (event: MessageEvent) => boolean;
+declare type LisenterCall = (message: any, event: PMERMessageEvent) => any;
+declare type FilterCall = (event: PMERMessageEvent) => boolean;
 export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener;
 /**
  * 添加单次消息监听（收到一次消息后即移除）
@@ -44,4 +54,3 @@ export declare function addListener(msgTypes: ListenerTypes, listener: LisenterC
  * addListener('MSG_TYPE', (message, event) => {});
  */
 export declare function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, filter?: FilterCall): RemoveListener;
-export {};

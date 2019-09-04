@@ -1,6 +1,6 @@
 {
   "name": "pmer",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Provide some powerful & helpful functions for Two-way communication with postMessage",
   "author": "qiqiboy",
   "main": "dist/index.cjs.js",
