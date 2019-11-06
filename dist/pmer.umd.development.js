@@ -31,7 +31,9 @@
       return mayWindow.window === mayWindow;
     }
 
-    function sender(target, data, origin, transfer) {
+    function sender(target, data, origin) {
+      var transfer = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+
       if (onlyStringMessage) {
         data = JSON.stringify(data);
       }

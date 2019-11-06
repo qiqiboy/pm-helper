@@ -42,7 +42,7 @@ function isWindow(mayWindow): mayWindow is Window {
     return mayWindow.window === mayWindow;
 }
 
-function sender(target: MessageEventSource, data, origin, transfer?) {
+function sender(target: MessageEventSource, data, origin, transfer: Transferable[] = []) {
     if (onlyStringMessage) {
         data = JSON.stringify(data);
     }
@@ -156,7 +156,11 @@ type ListenerTypes = string | '*' | string[];
 type LisenterCall<T> = (payload: T, event: PMERMessageEvent<T>) => any;
 type FilterCall<T> = (event: PMERMessageEvent<T>) => boolean;
 
-export function addListener<T = any>(msgTypes: ListenerTypes, listener: LisenterCall<T>, filter?: FilterCall<T>): RemoveListener {
+export function addListener<T = any>(
+    msgTypes: ListenerTypes,
+    listener: LisenterCall<T>,
+    filter?: FilterCall<T>
+): RemoveListener {
     function receiveMessage(originEvent: MessageEvent) {
         const event = processEvent(originEvent);
         const eventData = event.parsedData;
