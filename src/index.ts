@@ -196,7 +196,7 @@ export function addListener<T = any>(
                 // 如果监听方法返回了数据，那么我们将数据当作相应结果再postMessage回去
                 // 如果是回复类型，那么就不再继续对其进行回复，避免死锁
                 if (event.source && !isReplyType(type)) {
-                    if (typeof returnData === 'object' && typeof returnData.then === 'function') {
+                    if (returnData && typeof returnData === 'object' && typeof returnData.then === 'function') {
                         returnData.then(replyMessage, reason =>
                             replyMessage(reason instanceof Error ? reason.message : reason, true)
                         );

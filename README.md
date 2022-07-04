@@ -74,7 +74,11 @@ postMessage(window.parent, 'DELETE_USER', 123).then(() => console.log('delete su
  *
  * @return {function} 返回移除监听的方法
  */
-export declare function addListener(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener;
+export declare function addListener(
+    msgTypes: ListenerTypes,
+    listener: LisenterCall,
+    filter: (event: PMERMessageEvent<T>) => boolean
+): RemoveListener;
 
 // 监听 DELETE_USER 消息
 addListener('DELETE_USER', payload => {
@@ -105,12 +109,6 @@ addListener(
     },
     event => event.origin === 'https://valid.domain.com'
 );
-// 上面等同于，但是区别是当使用addListanerOnce时，通过第三个参数可以避免收到错误的消息后监听器被移除
-addListener('DELETE_USER', (payload, event) => {
-    if (event.origin === 'https://valid.domain.com') {
-        console.og(payload);
-    }
-});
 ```
 
 ### `addListenerOnce`
@@ -126,5 +124,9 @@ addListener('DELETE_USER', (payload, event) => {
  *
  * @return {function} 返回移除监听的方法
  */
-export declare function addListenerOnce(msgTypes: ListenerTypes, listener: LisenterCall, id?: number): RemoveListener;
+export declare function addListenerOnce(
+    msgTypes: ListenerTypes,
+    listener: LisenterCall,
+    filter: (event: PMERMessageEvent<T>) => boolean
+): RemoveListener;
 ```

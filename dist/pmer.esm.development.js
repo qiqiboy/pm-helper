@@ -146,7 +146,7 @@ function addListener(msgTypes, listener, filter) {
 
 
         if (event.source && !isReplyType(_type)) {
-          if (typeof returnData === 'object' && typeof returnData.then === 'function') {
+          if (returnData && typeof returnData === 'object' && typeof returnData.then === 'function') {
             returnData.then(replyMessage, function (reason) {
               return replyMessage(reason instanceof Error ? reason.message : reason, true);
             });
